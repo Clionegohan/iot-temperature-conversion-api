@@ -2,7 +2,12 @@ import Joi from 'joi';
 import { TemperatureUnit, TemperaturePrecisionContext } from '../types/temperature';
 
 export const temperatureValueSchema = Joi.object({
-  value: Joi.number().required()
+  value: Joi.number().required().custom((value, helpers) => {
+    if (!isFinite(value)) {
+      return helpers.error('number.finite');
+    }
+    return value;
+  })
     .messages({
       'number.finite': 'Temperature value must be a finite number',
       'any.required': 'Temperature value is required',

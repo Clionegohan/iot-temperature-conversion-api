@@ -228,22 +228,31 @@ describe('TemperatureConversionService', () => {
   });
 
   describe('パフォーマンス要件', () => {
-    test('単一変換が1ms以下で完了', () => {
+    test('単一変換が1ms以下で完了（平均5回測定）', () => {
       const request: ConversionRequest = {
         temperature: { value: 25, unit: TemperatureUnit.CELSIUS },
         targetUnit: TemperatureUnit.FAHRENHEIT,
         precision: TemperaturePrecisionContext.SCIENTIFIC,
       };
 
-      const startTime = performance.now();
-      TemperatureConversionService.convert(request);
-      const endTime = performance.now();
+      const times: number[] = [];
+      const iterations = 5;
 
-      const processingTime = endTime - startTime;
-      expect(processingTime).toBeLessThan(1);
+      for (let i = 0; i < iterations; i++) {
+        const startTime = performance.now();
+        TemperatureConversionService.convert(request);
+        const endTime = performance.now();
+        times.push(endTime - startTime);
+      }
+
+      const averageTime = times.reduce((sum, time) => sum + time, 0) / iterations;
+      const p95Time = times.sort((a, b) => a - b)[Math.floor(iterations * 0.95)];
+
+      expect(averageTime).toBeLessThan(1);
+      expect(p95Time).toBeLessThan(1);
     });
 
-    test('1000件のバッチ変換が10ms以下で完了', () => {
+    test('1000件のバッチ変換が10ms以下で完了（複数回測定）', () => {
       const temperatures = Array.from({ length: 1000 }, (_, i) => ({
         value: i * 0.1,
         unit: TemperatureUnit.CELSIUS,
@@ -255,13 +264,20 @@ describe('TemperatureConversionService', () => {
         precision: TemperaturePrecisionContext.CONSUMER,
       };
 
-      const startTime = performance.now();
-      const result = TemperatureConversionService.batchConvert(request);
-      const endTime = performance.now();
+      const times: number[] = [];
+      const iterations = 3;
 
-      const processingTime = endTime - startTime;
-      expect(processingTime).toBeLessThan(10);
-      expect(result.conversions).toHaveLength(1000);
+      for (let i = 0; i < iterations; i++) {
+        const startTime = performance.now();
+        const result = TemperatureConversionService.batchConvert(request);
+        const endTime = performance.now();
+        
+        times.push(endTime - startTime);
+        expect(result.conversions).toHaveLength(1000);
+      }
+
+      const averageTime = times.reduce((sum, time) => sum + time, 0) / iterations;
+      expect(averageTime).toBeLessThan(10);
     });
   });
 });

@@ -135,33 +135,35 @@ export class TemperatureConversionService {
     this.validateAbsoluteZero(temperature.value, temperature.unit);
   }
 
-  private static validateAbsoluteZero(value: number, unit: TemperatureUnit): void {
-    let absoluteZero: number;
-    let unitName: string;
-
+  private static getAbsoluteZeroInfo(unit: TemperatureUnit): { value: number; name: string } | null {
     switch (unit) {
       case TemperatureUnit.KELVIN:
-        absoluteZero = this.ABSOLUTE_ZERO_KELVIN;
-        unitName = 'Kelvin';
-        break;
+        return { value: this.ABSOLUTE_ZERO_KELVIN, name: 'Kelvin' };
       case TemperatureUnit.CELSIUS:
-        absoluteZero = this.ABSOLUTE_ZERO_CELSIUS;
-        unitName = 'Celsius';
-        break;
+        return { value: this.ABSOLUTE_ZERO_CELSIUS, name: 'Celsius' };
       case TemperatureUnit.FAHRENHEIT:
-        absoluteZero = this.ABSOLUTE_ZERO_FAHRENHEIT;
-        unitName = 'Fahrenheit';
-        break;
+        return { value: this.ABSOLUTE_ZERO_FAHRENHEIT, name: 'Fahrenheit' };
       default:
-        return;
+        return null;
+    }
+  }
+
+  private static validateAbsoluteZero(value: number, unit: TemperatureUnit): void {
+    const absoluteZeroInfo = this.getAbsoluteZeroInfo(unit);
+    
+    if (!absoluteZeroInfo) {
+      return;
     }
 
-    if (value < absoluteZero) {
-      throw new ConversionError(`Temperature cannot be below absolute zero (${absoluteZero}°${unitName})`, {
-        code: 'BELOW_ABSOLUTE_ZERO',
-        field: 'temperature.value',
-        value: value,
-      });
+    if (value < absoluteZeroInfo.value) {
+      throw new ConversionError(
+        `Temperature cannot be below absolute zero (${absoluteZeroInfo.value}°${absoluteZeroInfo.name})`,
+        {
+          code: 'BELOW_ABSOLUTE_ZERO',
+          field: 'temperature.value',
+          value: value,
+        }
+      );
     }
   }
 }
